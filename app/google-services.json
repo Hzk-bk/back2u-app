@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "332481519227",
+    "project_id": "back2u-9e284",
+    "storage_bucket": "back2u-9e284.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:332481519227:android:81d7127b53daa0d06e8cde",
+        "android_client_info": {
+          "package_name": "com.hzk.back2u"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA5wZhHRMALbB1ORAEBo4R-AsWl8pEDeiI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
