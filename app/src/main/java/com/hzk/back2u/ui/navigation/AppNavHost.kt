@@ -6,9 +6,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.hzk.back2u.data.AuthRepository
 import com.hzk.back2u.ui.auth.AuthViewModel
 import com.hzk.back2u.ui.auth.LoginScreen
 import com.hzk.back2u.ui.auth.RegisterScreen
@@ -20,8 +23,14 @@ object Routes {
     const val HOME = "home"
 }
 
+// The data layer is passed in from outside (see MainActivity), so the UI never creates it.
 @Composable
-fun AppNavHost(viewModel: AuthViewModel = viewModel()) {
+fun AppNavHost(authRepository: AuthRepository) {
+    val viewModel: AuthViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer { AuthViewModel(authRepository) }
+        }
+    )
     val navController = rememberNavController()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
 

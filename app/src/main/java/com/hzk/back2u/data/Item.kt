@@ -1,18 +1,10 @@
 package com.hzk.back2u.data
 
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 import com.google.firebase.firestore.ServerTimestamp
-
-object ItemType {
-    const val LOST = "lost"
-    const val FOUND = "found"
-}
-
-object ItemStatus {
-    const val OPEN = "open"
-    const val RETURNED = "returned"
-}
+import com.hzk.back2u.domain.ItemStatus
+import com.hzk.back2u.domain.ItemType
+import java.util.Date
 
 data class Item(
     @DocumentId val id: String = "",
@@ -23,8 +15,8 @@ data class Item(
     val categoryId: String = "",
     val categoryName: String = "",
     val location: String = "",
-    val dateOccurred: Timestamp? = null,
+    val dateOccurred: Date? = null,
     val status: String = ItemStatus.OPEN,
-    @ServerTimestamp val createdAt: Timestamp? = null,
-    @ServerTimestamp val updatedAt: Timestamp? = null
+    @ServerTimestamp val createdAt: Date? = null,
+    @ServerTimestamp val updatedAt: Date? = null
 )
