@@ -19,6 +19,7 @@ import com.hzk.back2u.ui.auth.AuthViewModel
 import com.hzk.back2u.ui.auth.LoginScreen
 import com.hzk.back2u.ui.auth.RegisterScreen
 import com.hzk.back2u.ui.items.ItemFormScreen
+import com.hzk.back2u.ui.items.ItemFormViewModel
 import com.hzk.back2u.ui.items.ItemListScreen
 import com.hzk.back2u.ui.items.ItemListViewModel
 
@@ -109,7 +110,17 @@ fun AppNavHost(authRepository: AuthRepository, itemRepository: ItemRepository) {
                 }
             )
         ) { entry ->
-            ItemFormScreen(itemId = entry.arguments?.getString("itemId"))
+            val itemId = entry.arguments?.getString("itemId")
+            val formViewModel: ItemFormViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { ItemFormViewModel(itemRepository, itemId) }
+                }
+            )
+            ItemFormScreen(
+                viewModel = formViewModel,
+                onDone = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
