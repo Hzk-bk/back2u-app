@@ -2,13 +2,9 @@ package com.hzk.back2u.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.FirebaseNetworkException
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.hzk.back2u.data.AuthException
+import com.hzk.back2u.data.AuthFailure
 import com.hzk.back2u.data.AuthRepository
-import com.hzk.back2u.data.FirebaseAuthRepository
 import com.hzk.back2u.domain.AuthValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,7 +15,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
-    private val repository: AuthRepository = FirebaseAuthRepository()
+    private val repository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -102,12 +98,13 @@ class AuthViewModel(
         resetForm()
     }
 
-    private fun mapError(e: Throwable): String = when (e) {
-        is FirebaseAuthUserCollisionException -> "An account with this email already exists"
-        is FirebaseAuthWeakPasswordException -> "The password is too weak"
-        is FirebaseAuthInvalidCredentialsException -> "Incorrect email or password"
-        is FirebaseAuthInvalidUserException -> "Incorrect email or password"
-        is FirebaseNetworkException -> "No internet connection"
-        else -> "Something went wrong. Please try again"
+    private fun mapError(e: Throwable): String = when ((e as? AuthException)?.failure) {
+        AuthFailure.EMAIL_IN_USE -> "An account with this email already exists"
+        AuthFailure.WEAK_PASSWORD -> "The password is too weak"
+        AuthFailure.INVALID_CREDENTIALS,
+        AuthFailure.USER_NOT_FOUND -> "Incorrect email or password"
+        AuthFailure.NETWORK -> "No internet connection"
+        AuthFailure.UNKNOWN, null -> "Something went wrong. Please try again"
     }
+
 }
