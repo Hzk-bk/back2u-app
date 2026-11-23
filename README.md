@@ -61,3 +61,7 @@ The app uses three layers for authentication: a repository that talks to Firebas
 2. Make sure the Android SDK platform 37 is installed (Tools → SDK Manager).
 3. Create an emulator with Google Play services, or connect a phone with USB debugging.
 4. Press Run. The `google-services.json` file for the Firebase project is included in `app/`.
+
+## Definition of Done
+
+A story is done when it is merged to main through a reviewed PR, works on the emulator with two different accounts, does not crash on invalid input and its issue is closed. This is a one-person team, so the review is a self-review comment on the PR.
