@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(data) {
+      return signedIn() && data.ownerId == request.auth.uid;
+    }
+
+    // Allowed fields, types and the logical rule that mirrors the app validator
+    function validItem(data) {
+      return data.keys().hasAll(['ownerId', 'title', 'description', 'type', 'categoryId',
+                                 'categoryName', 'location', 'dateOccurred', 'status',
+                                 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'title', 'description', 'type', 'categoryId',
+                                'categoryName', 'location', 'dateOccurred', 'status',
+                                'createdAt', 'updatedAt'])
+        && data.ownerId is string
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 60
+        && data.description is string && data.description.size() <= 300
+        && data.type in ['lost', 'found']
+        && data.categoryId is string && data.categoryId.size() > 0
+        && data.categoryName is string
+        && data.location is string
+        && (data.type != 'found' || data.location.size() > 0)
+        && data.dateOccurred is timestamp && data.dateOccurred <= request.time
+        && data.status in ['open', 'returned']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /items/{itemId} {
+      // Read, update and delete only for the owner
+      allow read, delete: if isOwner(resource.data);
+
+      // Create only with your own id, valid data and server time as created timestamp
+      allow create: if isOwner(request.resource.data)
+                    && validItem(request.resource.data)
+                    && request.resource.data.createdAt == request.time;
+
+      // Update: owner only, owner id and created timestamp cannot change
+      allow update: if isOwner(resource.data)
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && validItem(request.resource.data);
+    }
+
+    // Reference data: readable when signed in, writable by nobody from the app
+    match /categories/{categoryId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}
