@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -20,7 +21,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -73,47 +76,81 @@ fun ItemListScreen(
             }
         }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            when {
-                state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-
-                state.error != null -> Column(
+            // Search field: only when there is something to search.
+            if (!state.isLoading && state.error == null && state.items.isNotEmpty()) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
+                    label = { Text("Search") },
+                    singleLine = true,
+                    trailingIcon = {
+                        if (state.query.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            }
+                        }
+                    },
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = state.error.orEmpty(),
-                        color = MaterialTheme.colorScheme.error,
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when {
+                    state.isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+
+                    state.error != null -> Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = state.error.orEmpty(),
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Button(onClick = viewModel::startListening) { Text("Retry") }
+                    }
+
+                    state.items.isEmpty() -> Text(
+                        text = "No items yet. Tap + to add one.",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
                         textAlign = TextAlign.Center
                     )
-                    Button(onClick = viewModel::startListening) { Text("Retry") }
-                }
 
-                state.items.isEmpty() -> Text(
-                    text = "No items yet. Tap + to add one.",
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp),
-                    textAlign = TextAlign.Center
-                )
+                    state.visibleItems.isEmpty() -> Text(
+                        text = "No items match \"${state.query}\".",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(24.dp),
+                        textAlign = TextAlign.Center
+                    )
 
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(state.items, key = { it.id }) { item ->
-                        ItemRow(
-                            item = item,
-                            onClick = { onItemClick(item.id) },
-                            onDeleteClick = { viewModel.onDeleteClick(item) }
-                        )
+                    else -> LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(state.visibleItems, key = { it.id }) { item ->
+                            ItemRow(
+                                item = item,
+                                onClick = { onItemClick(item.id) },
+                                onDeleteClick = { viewModel.onDeleteClick(item) }
+                            )
+                        }
                     }
                 }
             }

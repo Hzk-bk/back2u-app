@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hzk.back2u.data.Item
 import com.hzk.back2u.data.ItemRepository
+import com.hzk.back2u.domain.filterItems
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,10 +17,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 data class ItemListUiState(
     val isLoading: Boolean = true,
     val items: List<Item> = emptyList(),
+    val query: String = "",
     val error: String? = null,
     val itemToDelete: Item? = null,
     val message: String? = null
-)
+) {
+    // What the screen shows: all items, narrowed down by the search text.
+    val visibleItems: List<Item> get() = filterItems(items, query)
+}
 
 class ItemListViewModel(
     private val repository: ItemRepository
@@ -59,6 +64,11 @@ class ItemListViewModel(
                     }
                 }
         }
+    }
+
+    // Search: only changes what is shown, the live listener keeps the full list.
+    fun onQueryChange(query: String) {
+        _uiState.update { it.copy(query = query) }
     }
 
     // Step 1: the user taps Delete on a row. Nothing is deleted yet, the dialog opens.
