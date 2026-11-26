@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hzk.back2u.data.Item
 import com.hzk.back2u.data.ItemRepository
+import com.hzk.back2u.domain.ItemStatus
 import com.hzk.back2u.domain.filterItems
+import com.hzk.back2u.domain.toggledStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,12 +20,13 @@ data class ItemListUiState(
     val isLoading: Boolean = true,
     val items: List<Item> = emptyList(),
     val query: String = "",
+    val hideReturned: Boolean = false,
     val error: String? = null,
     val itemToDelete: Item? = null,
     val message: String? = null
 ) {
-    // What the screen shows: all items, narrowed down by the search text.
-    val visibleItems: List<Item> get() = filterItems(items, query)
+    // What the screen shows: the search text and the "hide returned" switch applied.
+    val visibleItems: List<Item> get() = filterItems(items, query, hideReturned)
 }
 
 class ItemListViewModel(
@@ -71,6 +74,31 @@ class ItemListViewModel(
         _uiState.update { it.copy(query = query) }
     }
 
+    // "Hide returned" switch: also only changes what is shown.
+    fun onHideReturnedChange(hide: Boolean) {
+        _uiState.update { it.copy(hideReturned = hide) }
+    }
+
+    // Mark an item as returned, or open it again. The list updates through the live listener.
+    fun onToggleStatus(item: Item) {
+        val newStatus = toggledStatus(item.status)
+        viewModelScope.launch {
+            val result = withTimeoutOrNull(WRITE_TIMEOUT_MS) {
+                repository.setStatus(item.id, newStatus)
+            }
+            val message = if (result != null && result.isSuccess) {
+                if (newStatus == ItemStatus.RETURNED) {
+                    "Marked \"${item.title}\" as returned"
+                } else {
+                    "\"${item.title}\" is open again"
+                }
+            } else {
+                "Could not update \"${item.title}\". Try again."
+            }
+            _uiState.update { it.copy(message = message) }
+        }
+    }
+
     // Step 1: the user taps Delete on a row. Nothing is deleted yet, the dialog opens.
     fun onDeleteClick(item: Item) {
         _uiState.update { it.copy(itemToDelete = item) }
@@ -86,7 +114,7 @@ class ItemListViewModel(
         val item = _uiState.value.itemToDelete ?: return
         _uiState.update { it.copy(itemToDelete = null) }
         viewModelScope.launch {
-            val result = withTimeoutOrNull(DELETE_TIMEOUT_MS) { repository.deleteItem(item.id) }
+            val result = withTimeoutOrNull(WRITE_TIMEOUT_MS) { repository.deleteItem(item.id) }
             val message = if (result != null && result.isSuccess) {
                 "Deleted \"${item.title}\""
             } else {
@@ -101,6 +129,6 @@ class ItemListViewModel(
     }
 
     private companion object {
-        const val DELETE_TIMEOUT_MS = 15_000L
+        const val WRITE_TIMEOUT_MS = 15_000L
     }
 }

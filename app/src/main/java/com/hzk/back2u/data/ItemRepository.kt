@@ -9,5 +9,6 @@ interface ItemRepository {
     suspend fun getCategories(): Result<List<Category>>
     suspend fun addItem(input: ItemInput): Result<String>
     suspend fun updateItem(id: String, input: ItemInput): Result<Unit>
+    suspend fun setStatus(id: String, status: String): Result<Unit>
     suspend fun deleteItem(id: String): Result<Unit>
 }

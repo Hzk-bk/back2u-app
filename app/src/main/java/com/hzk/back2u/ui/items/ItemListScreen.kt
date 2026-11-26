@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,9 +39,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.hzk.back2u.data.Item
+import com.hzk.back2u.domain.ItemStatus
 import java.text.DateFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +58,7 @@ fun ItemListScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Short confirmation message after a delete (or an error message if it failed).
+    // Short confirmation message after a delete or status change (or an error if it failed).
     LaunchedEffect(state.message) {
         state.message?.let { message ->
             snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long)
@@ -81,7 +85,7 @@ fun ItemListScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // Search field: only when there is something to search.
+            // Search field and "Hide returned" switch: only when there is something to filter.
             if (!state.isLoading && state.error == null && state.items.isNotEmpty()) {
                 OutlinedTextField(
                     value = state.query,
@@ -99,6 +103,19 @@ fun ItemListScreen(
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp)
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Hide returned items", style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = state.hideReturned,
+                        onCheckedChange = viewModel::onHideReturnedChange
+                    )
+                }
             }
 
             Box(
@@ -133,7 +150,11 @@ fun ItemListScreen(
                     )
 
                     state.visibleItems.isEmpty() -> Text(
-                        text = "No items match \"${state.query}\".",
+                        text = if (state.query.isBlank()) {
+                            "All items are returned. Turn off \"Hide returned items\" to see them."
+                        } else {
+                            "No items match \"${state.query}\"."
+                        },
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(24.dp),
@@ -148,6 +169,7 @@ fun ItemListScreen(
                             ItemRow(
                                 item = item,
                                 onClick = { onItemClick(item.id) },
+                                onToggleStatusClick = { viewModel.onToggleStatus(item) },
                                 onDeleteClick = { viewModel.onDeleteClick(item) }
                             )
                         }
@@ -179,14 +201,30 @@ fun ItemListScreen(
 }
 
 @Composable
-private fun ItemRow(item: Item, onClick: () -> Unit, onDeleteClick: () -> Unit) {
+private fun ItemRow(
+    item: Item,
+    onClick: () -> Unit,
+    onToggleStatusClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    val returned = item.status == ItemStatus.RETURNED
+
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(item.title, style = MaterialTheme.typography.titleMedium)
+            // A returned item looks different: faded, struck-through title and a label.
+            Column(
+                Modifier
+                    .weight(1f)
+                    .alpha(if (returned) 0.55f else 1f)
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    textDecoration = if (returned) TextDecoration.LineThrough else null
+                )
                 Text(
                     text = "${item.type.replaceFirstChar { it.uppercase() }} · ${item.categoryName}",
                     style = MaterialTheme.typography.bodyMedium
@@ -198,13 +236,25 @@ private fun ItemRow(item: Item, onClick: () -> Unit, onDeleteClick: () -> Unit) 
                 if (details.isNotEmpty()) {
                     Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                 }
+                if (returned) {
+                    Text(
+                        text = "Returned",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            TextButton(
-                onClick = onDeleteClick,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) { Text("Delete") }
+            Column(horizontalAlignment = Alignment.End) {
+                TextButton(onClick = onToggleStatusClick) {
+                    Text(if (returned) "Reopen" else "Mark returned")
+                }
+                TextButton(
+                    onClick = onDeleteClick,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete") }
+            }
         }
     }
 }

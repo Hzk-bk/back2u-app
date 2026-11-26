@@ -77,6 +77,16 @@ class FirebaseItemRepository(
         Unit
     }
 
+    // Changes only the status (and the update time). Everything else stays as it was.
+    override suspend fun setStatus(id: String, status: String): Result<Unit> = runCatching {
+        val data = mapOf(
+            "status" to status,
+            "updatedAt" to FieldValue.serverTimestamp()
+        )
+        items.document(id).update(data).await()
+        Unit
+    }
+
     override suspend fun deleteItem(id: String): Result<Unit> = runCatching {
         items.document(id).delete().await()
         Unit
