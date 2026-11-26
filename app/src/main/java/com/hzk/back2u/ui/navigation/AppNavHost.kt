@@ -18,6 +18,8 @@ import com.hzk.back2u.data.ItemRepository
 import com.hzk.back2u.ui.auth.AuthViewModel
 import com.hzk.back2u.ui.auth.LoginScreen
 import com.hzk.back2u.ui.auth.RegisterScreen
+import com.hzk.back2u.ui.items.ItemDetailScreen
+import com.hzk.back2u.ui.items.ItemDetailViewModel
 import com.hzk.back2u.ui.items.ItemFormScreen
 import com.hzk.back2u.ui.items.ItemFormViewModel
 import com.hzk.back2u.ui.items.ItemListScreen
@@ -27,8 +29,10 @@ object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val LIST = "items"
+    const val DETAIL = "detail/{itemId}"
     const val FORM = "form?itemId={itemId}"
 
+    fun detail(itemId: String) = "detail/$itemId"
     fun form(itemId: String? = null) = if (itemId == null) "form" else "form?itemId=$itemId"
 }
 
@@ -97,7 +101,25 @@ fun AppNavHost(authRepository: AuthRepository, itemRepository: ItemRepository) {
                 viewModel = listViewModel,
                 onLogout = { authViewModel.logout() },
                 onAddClick = { navController.navigate(Routes.form()) },
-                onItemClick = { id -> navController.navigate(Routes.form(id)) }
+                // Tapping a row opens the read-only detail screen first.
+                onItemClick = { id -> navController.navigate(Routes.detail(id)) }
+            )
+        }
+        composable(
+            route = Routes.DETAIL,
+            arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+        ) { entry ->
+            val itemId = entry.arguments?.getString("itemId").orEmpty()
+            val detailViewModel: ItemDetailViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { ItemDetailViewModel(itemRepository, itemId) }
+                }
+            )
+            ItemDetailScreen(
+                viewModel = detailViewModel,
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate(Routes.form(id)) },
+                onDeleted = { navController.popBackStack() }
             )
         }
         composable(
